@@ -10,6 +10,7 @@ import hashlib
 from shutil import copyfile
 from .filetype import FileType
 from .popenwrapper import Popen
+from subprocess import check_output
 from .arglistfilter import ArgumentListFilter
 
 from .logconfig import logConfig
@@ -36,7 +37,9 @@ def wcompile(mode):
 
         af = builder.getBitcodeArglistFilter()
 
-        rc = buildObject(builder)
+        rc = buildObject(builder, af)
+        builder.af = None # re-generate af
+        af = builder.getBitcodeArglistFilter()
 
         # phase one compile failed. no point continuing
         if rc != 0:
@@ -282,8 +285,38 @@ def getBuilder(cmd, mode):
     _logger.critical(errorMsg, compilerEnv, str(cstring))
     raise Exception(errorMsg)
 
-def buildObject(builder):
-    objCompiler = builder.getCompiler()
+def getIncludeSearchPaths(builder, binUtilsTargetPrefix):
+    if builder.mode == "wllvm":
+        lang = 'c'
+    elif builder.mode == "wllvm++":
+        lang = 'c++'
+    else:
+        raise Exception(f'Unknown mode {builder.mode}')
+    outs = check_output(f"{binUtilsTargetPrefix}-gcc -E -x {lang} - -v < /dev/null 2>&1 "
+        "| sed -n '/#include <...> search starts here:/, /End of search list./p' "
+        "| sed '1d;$d'", shell=True, text=True)
+    include_search_paths = []
+    for path in outs.splitlines():
+        include_search_paths.append(f"-I{path.strip()}")
+    return include_search_paths
+
+def buildObject(builder, af):
+    binUtilsTargetPrefix = os.getenv(binutilsTargetPrefixEnv)
+    # use clang to compile, arm-none-eabi-gcc to link
+    if len(af.inputFiles) == 1 and af.isCompileOnly:
+        _logger.debug('Compile only')
+        builder.cmd.extend(['-target', 'arm-none-eabi', '-fno-inline'])
+        builder.cmd.extend(getIncludeSearchPaths(builder, binUtilsTargetPrefix))
+        objCompiler = builder.getCompiler()
+    else:
+        _logger.debug('We are probably linking')
+        if builder.mode == "wllvm":
+            prog = 'gcc'
+        elif builder.mode == "wllvm++":
+            prog = 'g++'
+        else:
+            raise Exception(f'Unknown mode {builder.mode}')
+        objCompiler = [f'{binUtilsTargetPrefix}-{prog}']
     objCompiler.extend(builder.getCommand())
     proc = Popen(objCompiler)
     rc = proc.wait()
