@@ -151,6 +151,7 @@ class ArgumentListFilter:
             # Debug
             '-g' : (0, ArgumentListFilter.compileUnaryCallback),
             '-g0' : (0, ArgumentListFilter.compileUnaryCallback),     #iam: clang not gcc
+            '-g3' : (0, ArgumentListFilter.compileUnaryCallback),
             '-ggdb' : (0, ArgumentListFilter.compileUnaryCallback),
             '-ggdb3' : (0, ArgumentListFilter.compileUnaryCallback),
             '-gdwarf-2' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -261,6 +262,7 @@ class ArgumentListFilter:
             r'^-I.+$' : (0, ArgumentListFilter.compileUnaryCallback),
             r'^-D.+$' : (0, ArgumentListFilter.compileUnaryCallback),
             r'^-U.+$' : (0, ArgumentListFilter.compileUnaryCallback),
+            r'^-T.+$' : (0, ArgumentListFilter.linkUnaryCallback),
             r'^-Wl,.+$' : (0, ArgumentListFilter.linkUnaryCallback),
             r'^-W(?!l,).*$' : (0, ArgumentListFilter.compileUnaryCallback),
             r'^-fsanitize=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
@@ -276,11 +278,12 @@ class ArgumentListFilter:
             r'^-mregparm=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                            #iam: linux kernel stuff
             r'^-march=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                               #iam: linux kernel stuff
             r'^--param=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                              #iam: linux kernel stuff
-            r'^-specs=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            r'^--?specs=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             # arm
             r'^-mfloat-abi=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mfpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mcpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            r'^-mabi=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
 
 
             #iam: mac stuff...
