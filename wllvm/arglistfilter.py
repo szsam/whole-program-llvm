@@ -133,6 +133,7 @@ class ArgumentListFilter:
             # Architecture
             '-target' : (1, ArgumentListFilter.compileBinaryCallback),
             '-marm' : (0, ArgumentListFilter.compileUnaryCallback),
+            '-mthumb' : (0, ArgumentListFilter.compileLinkUnaryCallback),
 
             # Language
             '-ansi' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -187,9 +188,11 @@ class ArgumentListFilter:
             # iam: showed up in buildkernel
             '-shared' : (0, ArgumentListFilter.linkUnaryCallback),
             '-static' : (0, ArgumentListFilter.linkUnaryCallback),
+            '--static' : (0, ArgumentListFilter.linkUnaryCallback),
             '-pie' : (0, ArgumentListFilter.linkUnaryCallback),
             '-nostdlib' : (0, ArgumentListFilter.linkUnaryCallback),
             '-nodefaultlibs' : (0, ArgumentListFilter.linkUnaryCallback),
+            '-nostartfiles' : (0, ArgumentListFilter.linkUnaryCallback),
             '-rdynamic' : (0, ArgumentListFilter.linkUnaryCallback),
             # darwin flags
             '-dynamiclib' : (0, ArgumentListFilter.linkUnaryCallback),
@@ -273,6 +276,11 @@ class ArgumentListFilter:
             r'^-mregparm=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                            #iam: linux kernel stuff
             r'^-march=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                               #iam: linux kernel stuff
             r'^--param=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                              #iam: linux kernel stuff
+            r'^-specs=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            # arm
+            r'^-mfloat-abi=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            r'^-mfpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            r'^-mcpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
 
 
             #iam: mac stuff...

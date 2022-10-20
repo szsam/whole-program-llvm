@@ -37,9 +37,7 @@ def wcompile(mode):
 
         af = builder.getBitcodeArglistFilter()
 
-        rc = buildObject(builder, af)
-        builder.af = None # re-generate af
-        af = builder.getBitcodeArglistFilter()
+        rc = buildObject(builder)
 
         # phase one compile failed. no point continuing
         if rc != 0:
@@ -264,6 +262,52 @@ class DragoneggBuilder(BuilderBase):
             self.af = ArgumentListFilter(self.cmd)
         return self.af
 
+class CrossCompileBuilder(ClangBuilder):
+
+    def __init__(self, cmd, mode, prefixPath=None):
+        super().__init__(cmd, mode, prefixPath)
+        self.binUtilsTargetPrefix = os.getenv(binutilsTargetPrefixEnv)
+        if self.binUtilsTargetPrefix is None:
+            errorMsg = 'GCC cross compiler not set. Please set environment variable %s'
+            _logger.critical(errorMsg, binUtilsTargetPrefix)
+            raise Exception(errorMsg)
+
+    def _getIncludeSearchPaths(self):
+        if self.mode == "wllvm":
+            lang = 'c'
+        elif self.mode == "wllvm++":
+            lang = 'c++'
+        else:
+            raise Exception(f'Unknown mode {self.mode}')
+        outs = check_output(
+            f"{self.binUtilsTargetPrefix}-gcc -E -x {lang} - -v < /dev/null 2>&1 "
+            "| sed -n '/#include <...> search starts here:/, /End of search list./p' "
+            "| sed '1d;$d'", shell=True, text=True)
+        includeSearchPaths = []
+        for path in outs.splitlines():
+            includeSearchPaths.append(f"-I{path.strip()}")
+        return includeSearchPaths
+
+    def getBitcodeGenerationFlags(self):
+        flags = super().getBitcodeGenerationFlags()
+        flags.extend(self._getIncludeSearchPaths())
+        flags.extend(['-target', 'arm-none-eabi', '-fno-inline'])
+        return flags
+
+    def getBitcodeCompiler(self):
+        #cc = self.getCompiler()
+        cc = super().getCompiler()
+        return cc + ['-emit-llvm'] + self.getBitcodeGenerationFlags()
+
+    def getCompiler(self):
+        if self.mode == "wllvm++":
+            prog = 'g++'
+        elif self.mode == "wllvm":
+            prog = 'gcc'
+        else:
+            raise Exception(f'Unknown mode {self.mode}')
+        return [f'{self.binUtilsTargetPrefix}-{prog}']
+
 def getBuilder(cmd, mode):
     compilerEnv = 'LLVM_COMPILER'
     cstring = os.getenv(compilerEnv)
@@ -274,7 +318,8 @@ def getBuilder(cmd, mode):
         _logger.debug('WLLVM compiler path prefix "%s"', pathPrefix)
 
     if cstring == 'clang':
-        return ClangBuilder(cmd, mode, pathPrefix)
+        #return ClangBuilder(cmd, mode, pathPrefix)
+        return CrossCompileBuilder(cmd, mode, pathPrefix)
     if cstring == 'dragonegg':
         return DragoneggBuilder(cmd, mode, pathPrefix)
     if cstring is None:
@@ -285,39 +330,10 @@ def getBuilder(cmd, mode):
     _logger.critical(errorMsg, compilerEnv, str(cstring))
     raise Exception(errorMsg)
 
-def getIncludeSearchPaths(builder, binUtilsTargetPrefix):
-    if builder.mode == "wllvm":
-        lang = 'c'
-    elif builder.mode == "wllvm++":
-        lang = 'c++'
-    else:
-        raise Exception(f'Unknown mode {builder.mode}')
-    outs = check_output(f"{binUtilsTargetPrefix}-gcc -E -x {lang} - -v < /dev/null 2>&1 "
-        "| sed -n '/#include <...> search starts here:/, /End of search list./p' "
-        "| sed '1d;$d'", shell=True, text=True)
-    include_search_paths = []
-    for path in outs.splitlines():
-        include_search_paths.append(f"-I{path.strip()}")
-    return include_search_paths
-
-def buildObject(builder, af):
-    binUtilsTargetPrefix = os.getenv(binutilsTargetPrefixEnv)
-    # use clang to compile, arm-none-eabi-gcc to link
-    if len(af.inputFiles) == 1 and af.isCompileOnly:
-        _logger.debug('Compile only')
-        builder.cmd.extend(['-target', 'arm-none-eabi', '-fno-inline'])
-        builder.cmd.extend(getIncludeSearchPaths(builder, binUtilsTargetPrefix))
-        objCompiler = builder.getCompiler()
-    else:
-        _logger.debug('We are probably linking')
-        if builder.mode == "wllvm":
-            prog = 'gcc'
-        elif builder.mode == "wllvm++":
-            prog = 'g++'
-        else:
-            raise Exception(f'Unknown mode {builder.mode}')
-        objCompiler = [f'{binUtilsTargetPrefix}-{prog}']
+def buildObject(builder):
+    objCompiler = builder.getCompiler()
     objCompiler.extend(builder.getCommand())
+    _logger.debug('buildObject %s', objCompiler)
     proc = Popen(objCompiler)
     rc = proc.wait()
     _logger.debug('buildObject rc = %d', rc)
@@ -379,6 +395,7 @@ def linkFiles(builder, objectFiles):
     cc.extend(af.objectFiles)
     cc.extend(af.linkArgs)
     cc.extend(['-o', outputFile])
+    _logger.debug('linkFiles %s', cc)
     proc = Popen(cc)
     rc = proc.wait()
     if rc != 0:
