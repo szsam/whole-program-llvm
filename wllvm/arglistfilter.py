@@ -131,7 +131,7 @@ class ArgumentListFilter:
             '-imultilib' : (1, ArgumentListFilter.compileBinaryCallback),
 
             # Architecture
-            '-target' : (1, ArgumentListFilter.compileBinaryCallback),
+            '-target' : (1, ArgumentListFilter.compileLinkBinaryCallback),
             '-marm' : (0, ArgumentListFilter.compileUnaryCallback),
             '-mthumb' : (0, ArgumentListFilter.compileLinkUnaryCallback),
 
@@ -279,7 +279,9 @@ class ArgumentListFilter:
             r'^-march=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                               #iam: linux kernel stuff
             r'^--param=.+$' : (0, ArgumentListFilter.compileUnaryCallback),                              #iam: linux kernel stuff
             r'^--?specs=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
-            # arm
+            r'^--target=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+
+            # ARM Options
             r'^-mfloat-abi=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mfpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mcpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
@@ -488,6 +490,13 @@ class ArgumentListFilter:
         _logger.debug('compileLinkUnaryCallback: %s', flag)
         self.compileArgs.append(flag)
         self.linkArgs.append(flag)
+
+    def compileLinkBinaryCallback(self, flag, arg):
+        _logger.debug('compileLinkBinaryCallback: %s %s', flag, arg)
+        self.compileArgs.append(flag)
+        self.linkArgs.append(flag)
+        self.compileArgs.append(arg)
+        self.linkArgs.append(arg)
 
     def getOutputFilename(self):
         if self.outputFilename is not None:
