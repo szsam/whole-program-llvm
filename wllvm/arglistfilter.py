@@ -49,6 +49,7 @@ class ArgumentListFilter:
             #warnings (apart from the regex below)
             '-w' : (0, ArgumentListFilter.compileUnaryCallback),
             '-W' : (0, ArgumentListFilter.compileUnaryCallback),
+            '-Werror' : (0, ArgumentListFilter.warningLinkUnaryCallback),
 
 
             #iam: if this happens, then we need to stop and think.
@@ -264,6 +265,7 @@ class ArgumentListFilter:
             r'^-U.+$' : (0, ArgumentListFilter.compileUnaryCallback),
             r'^-T.+$' : (0, ArgumentListFilter.linkUnaryCallback),
             r'^-Wl,.+$' : (0, ArgumentListFilter.linkUnaryCallback),
+            r'^-Werror=.+$' : (0, ArgumentListFilter.warningLinkUnaryCallback),
             r'^-W(?!l,).*$' : (0, ArgumentListFilter.compileUnaryCallback),
             r'^-fsanitize=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-f.+$' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -286,6 +288,9 @@ class ArgumentListFilter:
             r'^-mfpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mcpu=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
             r'^-mabi=.+$' : (0, ArgumentListFilter.compileLinkUnaryCallback),
+            # Clang always uses IEEE 754-2008 for __fp16, not the ARM alternative format.
+            # Thus, it does not support -mfp16-format= option.
+            r'^-mfp16-format=.+$' : (0, ArgumentListFilter.warningLinkUnaryCallback),
 
 
             #iam: mac stuff...
