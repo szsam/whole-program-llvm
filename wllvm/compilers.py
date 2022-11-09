@@ -285,7 +285,8 @@ class CrossCompileBuilder(ClangBuilder):
             "| sed '1d;$d'", shell=True, text=True)
         includeSearchPaths = []
         for path in outs.splitlines():
-            includeSearchPaths.append(f"-I{path.strip()}")
+            includeSearchPaths.append("-idirafter")
+            includeSearchPaths.append(path.strip())
         return includeSearchPaths
 
     def getBitcodeGenerationFlags(self):
