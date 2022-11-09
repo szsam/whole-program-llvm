@@ -319,10 +319,11 @@ def getBuilder(cmd, mode):
         _logger.debug('WLLVM compiler path prefix "%s"', pathPrefix)
 
     if cstring == 'clang':
-        #return ClangBuilder(cmd, mode, pathPrefix)
-        return CrossCompileBuilder(cmd, mode, pathPrefix)
+        return ClangBuilder(cmd, mode, pathPrefix)
     if cstring == 'dragonegg':
         return DragoneggBuilder(cmd, mode, pathPrefix)
+    if cstring == 'hybrid':
+        return CrossCompileBuilder(cmd, mode, pathPrefix)
     if cstring is None:
         errorMsg = ' No compiler set. Please set environment variable %s'
         _logger.critical(errorMsg, compilerEnv)
