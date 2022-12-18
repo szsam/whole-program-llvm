@@ -53,6 +53,7 @@ class ArgumentListFilter:
             '-fno-tree-loop-vectorize' : (0, ArgumentListFilter.warningLinkUnaryCallback),
             '-mthumb-interwork' : (0, ArgumentListFilter.warningLinkUnaryCallback),
             '-flto' : (0, ArgumentListFilter.warningLinkUnaryCallback),
+            '-fno-guess-branch-probability' : (0, ArgumentListFilter.warningLinkUnaryCallback),
 
 
             #iam: if this happens, then we need to stop and think.
@@ -295,6 +296,7 @@ class ArgumentListFilter:
             # Clang always uses IEEE 754-2008 for __fp16, not the ARM alternative format.
             # Thus, it does not support -mfp16-format= option.
             r'^-mfp16-format=.+$' : (0, ArgumentListFilter.warningLinkUnaryCallback),
+            r'^-mpreferred-stack-boundary=.+$' : (0, ArgumentListFilter.warningLinkUnaryCallback),
 
 
             #iam: mac stuff...
