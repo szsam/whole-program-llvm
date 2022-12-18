@@ -305,7 +305,15 @@ class CrossCompileBuilder(ClangBuilder):
     def getBitcodeGenerationFlags(self):
         flags = super().getBitcodeGenerationFlags()
         flags.extend(self._getIncludeSearchPaths())
-        flags.extend(['-target', 'arm-none-eabi', '-fno-inline'])
+        if 'arm' in self.binUtilsTargetPrefix:
+            targetTriple = 'arm-none-eabi'
+        elif 'i386-pc' in self.binUtilsTargetPrefix:
+            targetTriple = 'i386-pc-none-gnu'
+        else:
+            targetTriple = None
+        if targetTriple:
+            flags.extend(['-target', targetTriple])
+        flags.append('-fno-inline')
         return flags
 
     def getBitcodeCompiler(self):
