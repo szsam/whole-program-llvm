@@ -299,6 +299,7 @@ class CrossCompileBuilder(ClangBuilder):
         for path in outs.splitlines():
             includeSearchPaths.append("-idirafter")
             includeSearchPaths.append(path.strip())
+        includeSearchPaths.append('-nostdinc')
         return includeSearchPaths
 
     def getBitcodeGenerationFlags(self):
