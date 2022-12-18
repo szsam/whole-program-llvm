@@ -274,15 +274,47 @@ class DragoneggBuilder(BuilderBase):
             self.af = ArgumentListFilter(self.cmd)
         return self.af
 
-class CrossCompileBuilder(ClangBuilder):
+class HybridBuilder(ClangBuilder):
 
     def __init__(self, cmd, mode, prefixPath=None):
         super().__init__(cmd, mode, prefixPath)
-        self.binUtilsTargetPrefix = os.getenv(binutilsTargetPrefixEnv)
-        if self.binUtilsTargetPrefix is None:
-            errorMsg = 'GCC cross compiler not set. Please set environment variable %s'
-            _logger.critical(errorMsg, binUtilsTargetPrefix)
-            raise Exception(errorMsg)
+        gccPathEnv = 'GCC_PATH' # Optional
+        gccCrossCompilePfxEnv = 'GCC_CROSS_COMPILE_PREFIX' # Optional
+
+        gccPath = ''
+        if os.getenv(gccPathEnv) is not None:
+            gccPath = os.getenv(gccPathEnv)
+            if gccPath[-1] != os.path.sep:
+                gccPath = gccPath + os.path.sep
+            if not os.path.exists(gccPath):
+                errorMsg = 'Path to GCC compiler "%s" does not exist'
+                _logger.error(errorMsg, gccPath)
+                raise Exception(errorMsg)
+
+        gccCrossCompilePfx = ''
+        if os.getenv(gccCrossCompilePfxEnv) is not None:
+            gccCrossCompilePfx = os.getenv(gccCrossCompilePfxEnv)
+
+        if self.mode == "wllvm++":
+            mode = 'g++'
+        elif self.mode == "wllvm":
+            mode = 'gcc'
+        #elif self.mode == "wfortran":
+        #    mode = 'gfortran'
+        else:
+            raise Exception(f'Unknown mode {self.mode}')
+        self._compiler = f'{gccPath}{gccCrossCompilePfx}{mode}'
+        _logger.debug(self._compiler)
+
+        if os.getenv(binutilsTargetPrefixEnv) is None:
+            # remove trailing '-'
+            os.environ[binutilsTargetPrefixEnv] = f'{gccPath}{gccCrossCompilePfx}'[:-1]
+
+        # Backward-compatibility only
+        if (os.getenv(gccPathEnv) is None and os.getenv(gccCrossCompilePfxEnv) is None and
+                os.getenv(binutilsTargetPrefixEnv) is not None):
+            self._compiler = f'{os.getenv(binutilsTargetPrefixEnv)}-{mode}'
+            _logger.debug(self._compiler)
 
     def _getIncludeSearchPaths(self):
         if self.mode == "wllvm":
@@ -292,7 +324,7 @@ class CrossCompileBuilder(ClangBuilder):
         else:
             raise Exception(f'Unknown mode {self.mode}')
         outs = check_output(
-            f"{self.binUtilsTargetPrefix}-gcc -E -x {lang} - -v < /dev/null 2>&1 "
+            f"{self._compiler} -E -x {lang} - -v < /dev/null 2>&1 "
             "| sed -n '/#include <...> search starts here:/, /End of search list./p' "
             "| sed '1d;$d'", shell=True, text=True)
         includeSearchPaths = []
@@ -305,9 +337,9 @@ class CrossCompileBuilder(ClangBuilder):
     def getBitcodeGenerationFlags(self):
         flags = super().getBitcodeGenerationFlags()
         flags.extend(self._getIncludeSearchPaths())
-        if 'arm' in self.binUtilsTargetPrefix:
+        if 'arm' in self._compiler:
             targetTriple = 'arm-none-eabi'
-        elif 'i386-pc' in self.binUtilsTargetPrefix:
+        elif 'i386-pc' in self._compiler:
             targetTriple = 'i386-pc-none-gnu'
         else:
             targetTriple = None
@@ -322,13 +354,8 @@ class CrossCompileBuilder(ClangBuilder):
         return cc + ['-emit-llvm'] + self.getBitcodeGenerationFlags()
 
     def getCompiler(self):
-        if self.mode == "wllvm++":
-            prog = 'g++'
-        elif self.mode == "wllvm":
-            prog = 'gcc'
-        else:
-            raise Exception(f'Unknown mode {self.mode}')
-        return [f'{self.binUtilsTargetPrefix}-{prog}']
+        return [self._compiler]
+
 
 def getBuilder(cmd, mode):
     compilerEnv = 'LLVM_COMPILER'
@@ -344,7 +371,7 @@ def getBuilder(cmd, mode):
     if cstring == 'dragonegg':
         return DragoneggBuilder(cmd, mode, pathPrefix)
     if cstring == 'hybrid':
-        return CrossCompileBuilder(cmd, mode, pathPrefix)
+        return HybridBuilder(cmd, mode, pathPrefix)
     if cstring is None:
         errorMsg = ' No compiler set. Please set environment variable %s'
         _logger.critical(errorMsg, compilerEnv)
