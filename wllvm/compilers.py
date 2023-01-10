@@ -346,6 +346,7 @@ class HybridBuilder(ClangBuilder):
         if targetTriple:
             flags.extend(['-target', targetTriple])
         flags.append('-fno-inline')
+        flags.append('-g')
         return flags
 
     def getBitcodeCompiler(self):
