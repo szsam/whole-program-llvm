@@ -88,12 +88,18 @@ configuration oversights.
 
 Three environment variables must be set to use these wrappers:
 
- * `LLVM_COMPILER` should be set to either `dragonegg` or `clang`.
+ * `LLVM_COMPILER` should be set to `dragonegg` or `clang` or `hybrid`.
+   If `$LLVM_COMPILER == hybrid`, GCC is used for compilation and linking;
+   Clang is only used for bitcode generation.
  * `LLVM_GCC_PREFIX` should be set to the prefix for the version of gcc that should
    be used with dragonegg.  This can be empty if there is no prefix.  This variable is
-   not used if `$LLVM_COMPILER == clang`.
+   only used if `$LLVM_COMPILER == dragonegg`.
  * `LLVM_DRAGONEGG_PLUGIN` should be the full path to the dragonegg plugin.  This
-   variable is not used if `$LLVM_COMPILER == clang`.
+   variable is only used if `$LLVM_COMPILER == clangdragonegg`.
+ * `GCC_PATH` should be the full path to the directory containing GCC.
+    This variable is only used if `$LLVM_COMPILER == hybrid`.
+ * `GCC_CROSS_COMPILE_PREFIX` should be set to GCC cross compiler prefix, e.g. arm-none-eabi-.
+    This variable is only used if `$LLVM_COMPILER == hybrid`.
 
 Once the environment is set up, just use `wllvm` and `wllvm++` as your C
 and C++ compilers, respectively.
