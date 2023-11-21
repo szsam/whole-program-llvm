@@ -95,7 +95,7 @@ Three environment variables must be set to use these wrappers:
    be used with dragonegg.  This can be empty if there is no prefix.  This variable is
    only used if `$LLVM_COMPILER == dragonegg`.
  * `LLVM_DRAGONEGG_PLUGIN` should be the full path to the dragonegg plugin.  This
-   variable is only used if `$LLVM_COMPILER == clangdragonegg`.
+   variable is only used if `$LLVM_COMPILER == dragonegg`.
  * `GCC_PATH` should be the full path to the directory containing GCC.
     This variable is only used if `$LLVM_COMPILER == hybrid`.
  * `GCC_CROSS_COMPILE_PREFIX` should be set to GCC cross compiler prefix, e.g. arm-none-eabi-.
