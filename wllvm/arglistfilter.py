@@ -38,13 +38,13 @@ class ArgumentListFilter:
             '-E' : (0, ArgumentListFilter.preprocessOnlyCallback),
             '-S' : (0, ArgumentListFilter.assembleOnlyCallback),
 
+            '-v' : (0, ArgumentListFilter.verboseFlagCallback),
             '--verbose' : (0, ArgumentListFilter.verboseFlagCallback),
             '--param' : (1, ArgumentListFilter.compileBinaryCallback),
             '-aux-info' : (1, ArgumentListFilter.defaultBinaryCallback),
 
             #iam: presumably the len(inputFiles) == 0 in this case
             '--version' : (0, ArgumentListFilter.compileOnlyCallback),
-            '-v' : (0, ArgumentListFilter.compileOnlyCallback),
 
             #warnings (apart from the regex below)
             '-w' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -135,6 +135,11 @@ class ArgumentListFilter:
             '-iquote' : (1, ArgumentListFilter.compileBinaryCallback),
             '-imultilib' : (1, ArgumentListFilter.compileBinaryCallback),
 
+            # Sysroot
+            # Driver expands this into include options when compiling and
+            # library options when linking
+            '--sysroot' : (1, ArgumentListFilter.compileLinkBinaryCallback),
+
             # Architecture
             '-target' : (1, ArgumentListFilter.compileLinkBinaryCallback),
             '-marm' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -204,6 +209,7 @@ class ArgumentListFilter:
             '-dynamiclib' : (0, ArgumentListFilter.linkUnaryCallback),
             '-current_version' : (1, ArgumentListFilter.linkBinaryCallback),
             '-compatibility_version' : (1, ArgumentListFilter.linkBinaryCallback),
+            '-framework' : (1, ArgumentListFilter.linkBinaryCallback),
 
             # dragonegg mystery argument
             '--64' : (0, ArgumentListFilter.compileUnaryCallback),
@@ -467,6 +473,11 @@ class ArgumentListFilter:
         _logger.debug('compileUnaryCallback: %s', flag)
         self.compileArgs.append(flag)
 
+    def compileLinkUnaryCallback(self, flag):
+        _logger.debug('compileLinkUnaryCallback: %s', flag)
+        self.compileArgs.append(flag)
+        self.linkArgs.append(flag)
+
     def warningLinkUnaryCallback(self, flag):
         _logger.debug('warningLinkUnaryCallback: %s', flag)
         _logger.warning('The flag "%s" cannot be used with this tool; we are ignoring it', flag)
@@ -486,28 +497,21 @@ class ArgumentListFilter:
         self.compileArgs.append(flag)
         self.compileArgs.append(arg)
 
-
     def linkBinaryCallback(self, flag, arg):
         _logger.debug('linkBinaryCallback: %s %s', flag, arg)
+        self.linkArgs.append(flag)
+        self.linkArgs.append(arg)
+
+    def compileLinkBinaryCallback(self, flag, arg):
+        _logger.debug('compileLinkBinaryCallback: %s %s', flag, arg)
+        self.compileArgs.append(flag)
+        self.compileArgs.append(arg)
         self.linkArgs.append(flag)
         self.linkArgs.append(arg)
 
     def linkingGroupCallback(self, args):
         _logger.debug('linkingGroupCallback: %s', args)
         self.linkArgs.extend(args)
-
-    #flags common to both linking and compiling (coverage for example)
-    def compileLinkUnaryCallback(self, flag):
-        _logger.debug('compileLinkUnaryCallback: %s', flag)
-        self.compileArgs.append(flag)
-        self.linkArgs.append(flag)
-
-    def compileLinkBinaryCallback(self, flag, arg):
-        _logger.debug('compileLinkBinaryCallback: %s %s', flag, arg)
-        self.compileArgs.append(flag)
-        self.linkArgs.append(flag)
-        self.compileArgs.append(arg)
-        self.linkArgs.append(arg)
 
     def getOutputFilename(self):
         if self.outputFilename is not None:
