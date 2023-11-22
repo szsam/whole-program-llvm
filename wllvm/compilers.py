@@ -337,16 +337,8 @@ class HybridBuilder(ClangBuilder):
     def getBitcodeGenerationFlags(self):
         flags = super().getBitcodeGenerationFlags()
         flags.extend(self._getIncludeSearchPaths())
-        if 'arm' in self._compiler:
-            targetTriple = 'arm-none-eabi'
-        elif 'i386-pc' in self._compiler:
-            targetTriple = 'i386-pc-none-gnu'
-        else:
-            targetTriple = None
-        if targetTriple:
-            flags.extend(['-target', targetTriple])
-        flags.append('-fno-inline')
-        flags.append('-g')
+        #flags.append('-fno-inline')
+        #flags.append('-g')
         return flags
 
     def getBitcodeCompiler(self):
